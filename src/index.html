@@ -430,37 +430,189 @@
             <p class="welcome__subtitle">Personalize TaskForge to fit the way you work.</p>
           </div>
           <div class="settings-grid">
-            <form class="panel settings-card" id="appearance-settings-form">
+            <form class="panel settings-card settings-card--customization" id="appearance-settings-form">
               <div class="panel__header">
                 <div>
-                  <h2>Appearance &amp; clock</h2>
-                  <p class="panel__subtitle">Choose how TaskForge looks and displays time.</p>
+                  <h2>Visual customization</h2>
+                  <p class="panel__subtitle">Make TaskForge feel like your workspace. Changes preview immediately and save automatically.</p>
                 </div>
               </div>
               <div class="settings-card__body">
-                <label class="form-field">
-                  <span>Theme</span>
-                  <select id="theme-setting" name="theme">
-                    <option value="dark">Dark</option>
-                    <option value="light">Light</option>
-                  </select>
-                </label>
-                <label class="form-field">
-                  <span>Clock format</span>
-                  <select id="clock-format-setting" name="clockFormat">
-                    <option value="12-hour">12-hour</option>
-                    <option value="24-hour">24-hour</option>
-                  </select>
-                </label>
-                <label class="settings-toggle">
-                  <span>
-                    <strong>Desktop notifications</strong>
-                    <small>Show a system notification when a focus or break session ends.</small>
-                  </span>
-                  <input id="desktop-notifications-enabled" name="notificationsEnabled" type="checkbox" />
-                </label>
+                <fieldset class="theme-picker" aria-describedby="theme-picker-help">
+                  <legend>Theme</legend>
+                  <p id="theme-picker-help">Choose a visual foundation. Future themes will appear here when they are ready.</p>
+                  <div class="theme-picker__choices" role="radiogroup" aria-label="Application theme">
+                    <label class="theme-choice">
+                      <input type="radio" name="theme" value="dark" />
+                      <span class="theme-choice__swatch theme-choice__swatch--dark" aria-hidden="true"></span>
+                      <span class="theme-choice__name">Dark</span>
+                      <span class="theme-choice__description">TaskForge classic</span>
+                      <span class="theme-choice__active" aria-hidden="true">Active</span>
+                    </label>
+                    <label class="theme-choice">
+                      <input type="radio" name="theme" value="light" />
+                      <span class="theme-choice__swatch theme-choice__swatch--light" aria-hidden="true"></span>
+                      <span class="theme-choice__name">Light</span>
+                      <span class="theme-choice__description">Bright and clean</span>
+                      <span class="theme-choice__active" aria-hidden="true">Active</span>
+                    </label>
+                    <label class="theme-choice">
+                      <input type="radio" name="theme" value="hacker" />
+                      <span class="theme-choice__swatch theme-choice__swatch--hacker" aria-hidden="true"></span>
+                      <span class="theme-choice__name">Toxic Green</span>
+                      <span class="theme-choice__description">Hacker command center</span>
+                      <span class="theme-choice__active" aria-hidden="true">Active</span>
+                    </label>
+                    <label class="theme-choice">
+                      <input type="radio" name="theme" value="crimson" />
+                      <span class="theme-choice__swatch theme-choice__swatch--crimson" aria-hidden="true"></span>
+                      <span class="theme-choice__name">Crimson Reactor</span>
+                      <span class="theme-choice__description">Industrial cyberpunk</span>
+                      <span class="theme-choice__active" aria-hidden="true">Active</span>
+                    </label>
+                    <label class="theme-choice">
+                      <input type="radio" name="theme" value="cyber-blue" />
+                      <span class="theme-choice__swatch theme-choice__swatch--cyber-blue" aria-hidden="true"></span>
+                      <span class="theme-choice__name">Cyber Blue</span>
+                      <span class="theme-choice__description">Electric technology command center</span>
+                      <span class="theme-choice__active" aria-hidden="true">Active</span>
+                    </label>
+                    <label class="theme-choice">
+                      <input type="radio" name="theme" value="purple-haze" />
+                      <span class="theme-choice__swatch theme-choice__swatch--purple-haze" aria-hidden="true"></span>
+                      <span class="theme-choice__name">Purple Haze</span>
+                      <span class="theme-choice__description">Elegant violet workspace</span>
+                      <span class="theme-choice__active" aria-hidden="true">Active</span>
+                    </label>
+                  </div>
+                </fieldset>
+
+                <div class="customization-options">
+                  <fieldset class="customization-control customization-control--accent">
+                    <legend>Accent color</legend>
+                    <p>Personalize interactive highlights without changing your theme surfaces.</p>
+                    <div class="accent-picker" role="radiogroup" aria-label="Accent color">
+                      <label class="accent-choice">
+                        <input type="radio" name="accent-choice" value="default" />
+                        <span class="accent-choice__swatch accent-choice__swatch--default" aria-hidden="true"></span>
+                        <span>Theme default</span>
+                      </label>
+                      <label class="accent-choice">
+                        <input type="radio" name="accent-choice" value="#A3FF12" />
+                        <span class="accent-choice__swatch accent-choice__swatch--green" aria-hidden="true"></span>
+                        <span>Neon Green</span>
+                      </label>
+                      <label class="accent-choice">
+                        <input type="radio" name="accent-choice" value="#FF1744" />
+                        <span class="accent-choice__swatch accent-choice__swatch--crimson" aria-hidden="true"></span>
+                        <span>Crimson</span>
+                      </label>
+                      <label class="accent-choice">
+                        <input type="radio" name="accent-choice" value="#00A8FF" />
+                        <span class="accent-choice__swatch accent-choice__swatch--blue" aria-hidden="true"></span>
+                        <span>Electric Blue</span>
+                      </label>
+                      <label class="accent-choice">
+                        <input type="radio" name="accent-choice" value="#A855F7" />
+                        <span class="accent-choice__swatch accent-choice__swatch--purple" aria-hidden="true"></span>
+                        <span>Purple</span>
+                      </label>
+                      <label class="accent-choice">
+                        <input type="radio" name="accent-choice" value="#00F0FF" />
+                        <span class="accent-choice__swatch accent-choice__swatch--cyan" aria-hidden="true"></span>
+                        <span>Cyan</span>
+                      </label>
+                      <label class="accent-choice">
+                        <input type="radio" name="accent-choice" value="#FF8C42" />
+                        <span class="accent-choice__swatch accent-choice__swatch--orange" aria-hidden="true"></span>
+                        <span>Orange</span>
+                      </label>
+                      <div class="accent-custom-choice">
+                        <label class="accent-choice">
+                          <input type="radio" name="accent-choice" value="custom" />
+                          <span class="accent-choice__swatch accent-choice__swatch--custom" aria-hidden="true"></span>
+                          <span>Custom</span>
+                        </label>
+                        <input id="custom-accent-color" type="color" value="#A3FF12" aria-label="Choose a custom accent color" />
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <fieldset class="customization-control">
+                    <legend>Neon glow</legend>
+                    <p>Set the strength of decorative accent lighting.</p>
+                    <div class="segmented-options" role="radiogroup" aria-label="Neon glow intensity">
+                      <label><input type="radio" name="glowIntensity" value="off" /><span>Off</span></label>
+                      <label><input type="radio" name="glowIntensity" value="low" /><span>Low</span></label>
+                      <label><input type="radio" name="glowIntensity" value="medium" /><span>Medium</span></label>
+                      <label><input type="radio" name="glowIntensity" value="high" /><span>High</span></label>
+                    </div>
+                  </fieldset>
+
+                  <fieldset class="customization-control">
+                    <legend>Interface density</legend>
+                    <p>Choose how much breathing room the interface uses.</p>
+                    <div class="segmented-options" role="radiogroup" aria-label="Interface density">
+                      <label><input type="radio" name="density" value="comfortable" /><span>Comfortable</span></label>
+                      <label><input type="radio" name="density" value="standard" /><span>Standard</span></label>
+                      <label><input type="radio" name="density" value="compact" /><span>Compact</span></label>
+                    </div>
+                  </fieldset>
+
+                  <fieldset class="customization-control">
+                    <legend>Card appearance</legend>
+                    <p>Adjust the shape of cards and major containers.</p>
+                    <div class="segmented-options" role="radiogroup" aria-label="Card appearance">
+                      <label><input type="radio" name="cardStyle" value="rounded" /><span>Rounded</span></label>
+                      <label><input type="radio" name="cardStyle" value="sharp" /><span>Sharp</span></label>
+                    </div>
+                  </fieldset>
+
+                  <fieldset class="customization-control">
+                    <legend>Animation</legend>
+                    <p>Control decorative motion and hover transitions.</p>
+                    <div class="segmented-options" role="radiogroup" aria-label="Animation intensity">
+                      <label><input type="radio" name="animationIntensity" value="off" /><span>Off</span></label>
+                      <label><input type="radio" name="animationIntensity" value="subtle" /><span>Subtle</span></label>
+                      <label><input type="radio" name="animationIntensity" value="dynamic" /><span>Dynamic</span></label>
+                    </div>
+                  </fieldset>
+
+                  <label class="settings-toggle customization-background">
+                    <span>
+                      <strong>Background effects</strong>
+                      <small>Show the theme's subtle ambient lighting and gradients.</small>
+                    </span>
+                    <input id="background-effects-enabled" name="backgroundEffects" type="checkbox" />
+                  </label>
+                </div>
+
+                <div class="customization-actions">
+                  <div>
+                    <button class="secondary-button" id="reset-appearance" type="button">Reset appearance</button>
+                    <p>Restores visual defaults while keeping your theme, clock, notifications, and data.</p>
+                  </div>
+                  <p id="appearance-save-status" role="status" aria-live="polite"></p>
+                </div>
+
+                <div class="appearance-preferences">
+                  <label class="form-field">
+                    <span>Clock format</span>
+                    <select id="clock-format-setting" name="clockFormat">
+                      <option value="12-hour">12-hour</option>
+                      <option value="24-hour">24-hour</option>
+                    </select>
+                  </label>
+                  <label class="settings-toggle">
+                    <span>
+                      <strong>Desktop notifications</strong>
+                      <small>Show a system notification when a focus or break session ends.</small>
+                    </span>
+                    <input id="desktop-notifications-enabled" name="notificationsEnabled" type="checkbox" />
+                  </label>
+                </div>
                 <p class="form-error" id="app-settings-error" role="alert" hidden></p>
-                <button class="primary-button" id="save-app-settings" type="submit">Save preferences</button>
+                <button class="primary-button" id="save-app-settings" type="submit">Save clock &amp; notification preferences</button>
               </div>
             </form>
 

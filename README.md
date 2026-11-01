@@ -9,7 +9,7 @@ TaskForge is a private, local-first desktop workspace for organizing tasks, plan
 - **Schedule:** Create and manage dated activities, navigate between days, detect overlapping activities, and view a live timeline.
 - **Focus timer:** Focus, short-break, and long-break sessions with pause, resume, reset, skip, custom durations, session statistics, and native desktop notifications.
 - **Analytics:** Daily statistics, current-week charts (Monday through Sunday), and a transparent daily productivity score.
-- **Settings:** Dark or light appearance, 12- or 24-hour clock, desktop notification and sound preferences, focus durations, application information, and an explicit data reset.
+- **Settings:** Dark, Light, Toxic Green, Crimson Reactor, Cyber Blue, and Purple Haze themes with persistent accent color, glow, density, card shape, animation, and background-effect controls; clock and notification preferences; focus durations; application information; and an explicit data reset.
 
 ## Technology
 

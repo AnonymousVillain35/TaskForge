@@ -118,7 +118,19 @@ const elements = {
 
 let tasks = [];
 let activities = [];
-let appSettings = { theme: 'dark', clockFormat: '12-hour', notificationsEnabled: true };
+let appSettings = {
+  theme: 'dark',
+  clockFormat: '12-hour',
+  notificationsEnabled: true,
+  accentColor: 'default',
+  glowIntensity: 'low',
+  density: 'standard',
+  cardStyle: 'rounded',
+  animationIntensity: 'subtle',
+  backgroundEffects: true,
+};
+let appSettingsSaveQueue = Promise.resolve();
+let appSettingsSaveRevision = 0;
 let focusSettings = { focusMinutes: 25, shortBreakMinutes: 5, longBreakMinutes: 15, soundEnabled: true };
 let focusStats = {
   totalCompletedSessions: 0,
@@ -955,14 +967,112 @@ function renderNotificationSupport(isSupported) {
 }
 
 function applyAppSettings() {
-  document.body.dataset.theme = appSettings.theme;
-  document.querySelector('#theme-setting').value = appSettings.theme;
+  const root = document.documentElement;
+  const body = document.body;
+  root.dataset.theme = appSettings.theme;
+  body.dataset.theme = appSettings.theme;
+  body.dataset.density = appSettings.density;
+  body.dataset.cardStyle = appSettings.cardStyle;
+  body.dataset.glow = appSettings.glowIntensity;
+  body.dataset.animation = appSettings.animationIntensity;
+  body.dataset.backgroundEffects = appSettings.backgroundEffects ? 'on' : 'off';
+  if (appSettings.accentColor === 'default') {
+    root.style.removeProperty('--appearance-accent');
+    root.style.removeProperty('--appearance-accent-foreground');
+  } else {
+    root.style.setProperty('--appearance-accent', appSettings.accentColor);
+    const color = appSettings.accentColor.slice(1);
+    const channels = [0, 2, 4].map((offset) => Number.parseInt(color.slice(offset, offset + 2), 16) / 255);
+    const luminance = channels
+      .map((channel) => (channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4))
+      .reduce((sum, channel, index) => sum + channel * [0.2126, 0.7152, 0.0722][index], 0);
+    root.style.setProperty('--appearance-accent-foreground', luminance > 0.179 ? '#101010' : '#ffffff');
+  }
+  document.querySelectorAll('input[name="theme"]').forEach((input) => {
+    input.checked = input.value === appSettings.theme;
+  });
+  const presetAccent = [...document.querySelectorAll('input[name="accent-choice"]')]
+    .find((input) => input.value === appSettings.accentColor);
+  document.querySelectorAll('input[name="accent-choice"]').forEach((input) => {
+    input.checked = input === (presetAccent || document.querySelector('input[name="accent-choice"][value="custom"]'));
+  });
+  const themeDefaultAccents = {
+    dark: '#6382ff',
+    light: '#6382ff',
+    hacker: '#A3FF12',
+    crimson: '#FF1744',
+    'cyber-blue': '#00A8FF',
+    'purple-haze': '#9333EA',
+  };
+  document.querySelector('#custom-accent-color').value = appSettings.accentColor === 'default'
+    ? themeDefaultAccents[appSettings.theme]
+    : appSettings.accentColor;
+  for (const setting of ['glowIntensity', 'density', 'cardStyle', 'animationIntensity']) {
+    document.querySelectorAll(`input[name="${setting}"]`).forEach((input) => {
+      input.checked = input.value === appSettings[setting];
+    });
+  }
+  document.querySelector('#background-effects-enabled').checked = appSettings.backgroundEffects;
   document.querySelector('#clock-format-setting').value = appSettings.clockFormat;
   document.querySelector('#desktop-notifications-enabled').checked = appSettings.notificationsEnabled;
   document.querySelector('#notification-button-dot').hidden = !appSettings.notificationsEnabled;
-  document.querySelector('meta[name="theme-color"]').content =
-    appSettings.theme === 'light' ? '#f3f5f9' : '#11141b';
+  const themeColors = {
+    dark: '#11141b',
+    light: '#f3f5f9',
+    hacker: '#080D0A',
+    crimson: '#0B0709',
+    'cyber-blue': '#070D18',
+    'purple-haze': '#0D0817',
+  };
+  document.querySelector('meta[name="theme-color"]').content = themeColors[appSettings.theme];
   updateDateAndClock();
+}
+
+function getSettingsFromAppearanceControls(baseSettings = appSettings) {
+  const selectedAccent = document.querySelector('input[name="accent-choice"]:checked')?.value ?? 'default';
+  return {
+    ...baseSettings,
+    theme: document.querySelector('input[name="theme"]:checked')?.value ?? baseSettings.theme,
+    accentColor: selectedAccent === 'custom'
+      ? document.querySelector('#custom-accent-color').value
+      : selectedAccent,
+    glowIntensity: document.querySelector('input[name="glowIntensity"]:checked')?.value ?? baseSettings.glowIntensity,
+    density: document.querySelector('input[name="density"]:checked')?.value ?? baseSettings.density,
+    cardStyle: document.querySelector('input[name="cardStyle"]:checked')?.value ?? baseSettings.cardStyle,
+    animationIntensity: document.querySelector('input[name="animationIntensity"]:checked')?.value
+      ?? baseSettings.animationIntensity,
+    backgroundEffects: document.querySelector('#background-effects-enabled').checked,
+  };
+}
+
+async function saveApplicationSettings(settings, notifyOnFailure = true) {
+  const revision = ++appSettingsSaveRevision;
+  const write = appSettingsSaveQueue.then(() => window.appApi.saveSettings(settings));
+  appSettingsSaveQueue = write.then(() => undefined, () => undefined);
+  try {
+    const savedSettings = await write;
+    if (revision === appSettingsSaveRevision) {
+      appSettings = savedSettings;
+      applyAppSettings();
+      document.querySelector('#appearance-save-status').textContent = 'Appearance saved';
+    }
+    return savedSettings;
+  } catch (error) {
+    if (revision === appSettingsSaveRevision) {
+      document.querySelector('#appearance-save-status').textContent = 'Could not save appearance';
+      if (notifyOnFailure) {
+        showToast(`Could not save appearance settings: ${error.message}`, true);
+      }
+    }
+    return null;
+  }
+}
+
+function previewAndSaveAppearance() {
+  appSettings = getSettingsFromAppearanceControls();
+  applyAppSettings();
+  document.querySelector('#appearance-save-status').textContent = 'Saving…';
+  return saveApplicationSettings({ ...appSettings });
 }
 
 async function loadAppSettings() {
@@ -1534,22 +1644,65 @@ document.querySelector('#appearance-settings-form').addEventListener('submit', a
   const saveButton = document.querySelector('#save-app-settings');
   const errorMessage = document.querySelector('#app-settings-error');
   const nextSettings = {
-    theme: document.querySelector('#theme-setting').value,
+    ...getSettingsFromAppearanceControls(),
     clockFormat: document.querySelector('#clock-format-setting').value,
     notificationsEnabled: document.querySelector('#desktop-notifications-enabled').checked,
   };
   saveButton.disabled = true;
   errorMessage.hidden = true;
   try {
-    appSettings = await window.appApi.saveSettings(nextSettings);
-    applyAppSettings();
+    appSettings = nextSettings;
+    const savedSettings = await saveApplicationSettings(nextSettings, false);
+    if (!savedSettings) {
+      errorMessage.textContent = 'Could not save preferences. Please try again.';
+      errorMessage.hidden = false;
+      return;
+    }
     showToast('Application preferences saved.');
-  } catch (error) {
-    errorMessage.textContent = `Could not save preferences: ${error.message}`;
-    errorMessage.hidden = false;
   } finally {
     saveButton.disabled = false;
   }
+});
+
+const appearanceSettingsForm = document.querySelector('#appearance-settings-form');
+appearanceSettingsForm.addEventListener('change', (event) => {
+  if (!event.target.matches(
+    'input[name="theme"], input[name="accent-choice"], input[name="glowIntensity"], input[name="density"], input[name="cardStyle"], input[name="animationIntensity"], #background-effects-enabled, #custom-accent-color',
+  )) {
+    return;
+  }
+  previewAndSaveAppearance();
+});
+
+document.querySelector('#custom-accent-color').addEventListener('input', (event) => {
+  document.querySelector('input[name="accent-choice"][value="custom"]').checked = true;
+  appSettings = getSettingsFromAppearanceControls();
+  applyAppSettings();
+  document.querySelector('#appearance-save-status').textContent = 'Previewing custom accent';
+});
+
+document.querySelector('#reset-appearance').addEventListener('click', () => {
+  const clockFormat = document.querySelector('#clock-format-setting').value;
+  const notificationsEnabled = document.querySelector('#desktop-notifications-enabled').checked;
+  appSettings = {
+    ...appSettings,
+    accentColor: 'default',
+    glowIntensity: 'low',
+    density: 'standard',
+    cardStyle: 'rounded',
+    animationIntensity: 'subtle',
+    backgroundEffects: true,
+  };
+  applyAppSettings();
+  document.querySelector('#clock-format-setting').value = clockFormat;
+  document.querySelector('#desktop-notifications-enabled').checked = notificationsEnabled;
+  document.querySelector('#appearance-save-status').textContent = 'Saving…';
+  saveApplicationSettings({ ...appSettings })
+    .then((savedSettings) => {
+      if (savedSettings) {
+        showToast('Appearance reset. Your theme and data were kept.');
+      }
+    });
 });
 
 document.querySelector('#reset-application-data').addEventListener('click', resetApplicationData);

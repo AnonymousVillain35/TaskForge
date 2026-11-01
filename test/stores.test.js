@@ -15,26 +15,96 @@ async function createTemporaryDirectory(t) {
   return directory;
 }
 
-test('application settings load defaults, persist preferences, and validate input', async (t) => {
+test('application settings load defaults, persist selectable themes, and validate input', async (t) => {
   const directory = await createTemporaryDirectory(t);
   const filePath = path.join(directory, 'settings.json');
 
   assert.deepEqual(await appSettingsStore.loadSettings(filePath), appSettingsStore.defaultSettings);
   const saved = await appSettingsStore.saveSettings(filePath, {
-    theme: 'light',
+    theme: 'hacker',
     clockFormat: '24-hour',
     notificationsEnabled: false,
+    accentColor: '#00A8FF',
+    glowIntensity: 'high',
+    density: 'compact',
+    cardStyle: 'sharp',
+    animationIntensity: 'dynamic',
+    backgroundEffects: false,
   });
   assert.deepEqual(saved, {
-    theme: 'light',
+    ...appSettingsStore.defaultSettings,
+    theme: 'hacker',
     clockFormat: '24-hour',
     notificationsEnabled: false,
+    accentColor: '#00A8FF',
+    glowIntensity: 'high',
+    density: 'compact',
+    cardStyle: 'sharp',
+    animationIntensity: 'dynamic',
+    backgroundEffects: false,
   });
   assert.deepEqual(await appSettingsStore.loadSettings(filePath), saved);
+  const crimsonSettings = await appSettingsStore.saveSettings(filePath, {
+    ...saved,
+    theme: 'crimson',
+  });
+  assert.equal(crimsonSettings.theme, 'crimson');
+  assert.deepEqual(await appSettingsStore.loadSettings(filePath), crimsonSettings);
+  for (const theme of ['cyber-blue', 'purple-haze']) {
+    const themedSettings = await appSettingsStore.saveSettings(filePath, {
+      ...crimsonSettings,
+      theme,
+    });
+    assert.equal(themedSettings.theme, theme);
+    assert.equal(themedSettings.accentColor, saved.accentColor);
+    assert.deepEqual(await appSettingsStore.loadSettings(filePath), themedSettings);
+  }
+  const lightSettings = await appSettingsStore.saveSettings(filePath, {
+    ...crimsonSettings,
+    theme: 'light',
+  });
+  assert.equal(lightSettings.theme, 'light');
+  assert.equal(lightSettings.accentColor, '#00A8FF');
   await assert.rejects(
     appSettingsStore.saveSettings(filePath, { theme: 'system', clockFormat: '24-hour', notificationsEnabled: false }),
     TypeError,
   );
+  await assert.rejects(
+    appSettingsStore.saveSettings(filePath, { ...lightSettings, theme: 'arctic-white' }),
+    TypeError,
+  );
+  await assert.rejects(
+    appSettingsStore.saveSettings(filePath, { ...lightSettings, accentColor: 'red' }),
+    TypeError,
+  );
+  await assert.rejects(
+    appSettingsStore.saveSettings(filePath, { ...lightSettings, glowIntensity: 'extreme' }),
+    TypeError,
+  );
+  await assert.rejects(
+    appSettingsStore.saveSettings(filePath, { ...lightSettings, density: 'tiny' }),
+    TypeError,
+  );
+  await assert.rejects(
+    appSettingsStore.saveSettings(filePath, { ...lightSettings, backgroundEffects: 'yes' }),
+    TypeError,
+  );
+});
+
+test('legacy application settings retain preferences and receive appearance defaults', async (t) => {
+  const directory = await createTemporaryDirectory(t);
+  const filePath = path.join(directory, 'settings.json');
+  const legacySettings = {
+    theme: 'crimson',
+    clockFormat: '24-hour',
+    notificationsEnabled: false,
+  };
+  await fs.writeFile(filePath, JSON.stringify(legacySettings), 'utf8');
+
+  assert.deepEqual(await appSettingsStore.loadSettings(filePath), {
+    ...appSettingsStore.defaultSettings,
+    ...legacySettings,
+  });
 });
 
 test('corrupt application settings are preserved and replaced with defaults', async (t) => {

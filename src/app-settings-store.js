@@ -6,6 +6,12 @@ const defaultSettings = {
   theme: 'dark',
   clockFormat: '12-hour',
   notificationsEnabled: true,
+  accentColor: 'default',
+  glowIntensity: 'low',
+  density: 'standard',
+  cardStyle: 'rounded',
+  animationIntensity: 'subtle',
+  backgroundEffects: true,
 };
 
 function isPlainObject(value) {
@@ -13,16 +19,35 @@ function isPlainObject(value) {
 }
 
 function validateSettings(input) {
-  if (!isPlainObject(input)
-    || !['dark', 'light'].includes(input.theme)
-    || !['12-hour', '24-hour'].includes(input.clockFormat)
-    || typeof input.notificationsEnabled !== 'boolean') {
-    throw new TypeError('Settings must include a valid theme, clock format, and notification preference.');
+  if (!isPlainObject(input)) {
+    throw new TypeError('Settings must be a plain object.');
   }
+
+  const settings = { ...defaultSettings, ...input };
+  const validAccentColor = settings.accentColor === 'default'
+    || (typeof settings.accentColor === 'string' && /^#[\da-f]{6}$/i.test(settings.accentColor));
+  if (!['dark', 'light', 'hacker', 'crimson', 'cyber-blue', 'purple-haze'].includes(settings.theme)
+    || !['12-hour', '24-hour'].includes(settings.clockFormat)
+    || typeof settings.notificationsEnabled !== 'boolean'
+    || !validAccentColor
+    || !['off', 'low', 'medium', 'high'].includes(settings.glowIntensity)
+    || !['comfortable', 'standard', 'compact'].includes(settings.density)
+    || !['rounded', 'sharp'].includes(settings.cardStyle)
+    || !['off', 'subtle', 'dynamic'].includes(settings.animationIntensity)
+    || typeof settings.backgroundEffects !== 'boolean') {
+    throw new TypeError('Settings contain an invalid theme, appearance, clock, or notification preference.');
+  }
+
   return {
-    theme: input.theme,
-    clockFormat: input.clockFormat,
-    notificationsEnabled: input.notificationsEnabled,
+    theme: settings.theme,
+    clockFormat: settings.clockFormat,
+    notificationsEnabled: settings.notificationsEnabled,
+    accentColor: settings.accentColor,
+    glowIntensity: settings.glowIntensity,
+    density: settings.density,
+    cardStyle: settings.cardStyle,
+    animationIntensity: settings.animationIntensity,
+    backgroundEffects: settings.backgroundEffects,
   };
 }
 
