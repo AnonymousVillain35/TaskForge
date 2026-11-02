@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
       name="description"
-      content="TaskForge productivity dashboard for tasks, schedule, and focus."
+      content="TaskForge productivity workspace for tasks, scheduling, habits, goals, and focus."
     />
     <meta name="theme-color" content="#11141b" />
     <title>TaskForge | Dashboard</title>
@@ -16,10 +16,7 @@
       <aside class="sidebar" aria-label="Main sidebar">
         <a class="brand" href="#dashboard" data-page="dashboard" aria-label="TaskForge home">
           <span class="brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 32 32" fill="none">
-              <path d="M7 6.5h11.3L25 13l-6.7 6.5H7V6.5Z" />
-              <path d="M7 19.5h11.3L25 26l-6.7 6.5H7v-13Z" />
-            </svg>
+            <img src="../assets/taskforge-mark.svg" alt="" />
           </span>
           <span class="brand__name">Task<span>Forge</span></span>
         </a>
@@ -50,6 +47,20 @@
             </svg>
             <span>Schedule</span>
             <span class="navigation__count" id="schedule-count" hidden>0</span>
+          </a>
+          <a class="navigation__item" href="#habits" data-page="habits">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 20v-8m0 3c-4.5 0-7-2.5-7-7 4.5 0 7 2.5 7 7Zm0-3c0-4.5 2.5-7 7-7 0 4.5-2.5 7-7 7Z" />
+            </svg>
+            <span>Habits</span>
+          </a>
+          <a class="navigation__item" href="#goals" data-page="goals">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="8.5" />
+              <circle cx="12" cy="12" r="4.5" />
+              <circle cx="12" cy="12" r="1" />
+            </svg>
+            <span>Goals</span>
           </a>
           <a class="navigation__item" href="#focus" data-page="focus">
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -104,7 +115,13 @@
 
       <main class="main-content">
         <header class="topbar">
-          <div class="breadcrumb"><span>Workspace</span><span aria-hidden="true">/</span><strong id="current-page">Dashboard</strong></div>
+          <div class="topbar__identity">
+            <a class="topbar__brand" href="#dashboard" data-page="dashboard" aria-label="TaskForge home">
+              <img src="../assets/taskforge-mark.svg" alt="" />
+              <span>TaskForge</span>
+            </a>
+            <div class="breadcrumb"><span>Workspace</span><span aria-hidden="true">/</span><strong id="current-page">Dashboard</strong></div>
+          </div>
           <div class="topbar__actions">
             <time class="clock" id="live-clock">
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -113,12 +130,15 @@
               </svg>
               <span id="clock-time">--:--:-- --</span>
             </time>
-            <a class="icon-button notification-button" href="#settings" data-page="settings" aria-label="Notification settings">
+            <button class="icon-button global-search-button" id="global-search-button" type="button" aria-label="Search TaskForge" title="Search (Ctrl+K)">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" /></svg>
+            </button>
+            <button class="icon-button notification-button" id="notification-center-button" type="button" aria-label="Notifications" aria-haspopup="dialog" aria-controls="notification-center-dialog">
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
               </svg>
               <span class="notification-button__dot" id="notification-button-dot"></span>
-            </a>
+            </button>
           </div>
         </header>
 
@@ -224,8 +244,46 @@
           <footer class="dashboard-footer">
             <span>Stay focused. You’re doing great.</span>
             <span>TaskForge <span aria-hidden="true">·</span> Your personal workspace</span>
+            <span class="creator-signature creator-signature--footer" id="dashboard-creator-signature"></span>
           </footer>
         </div>
+
+        <section class="page-view global-search-view" data-view="search" aria-labelledby="global-search-title" hidden>
+          <div class="global-search-view__header">
+            <div>
+              <p class="welcome__date">TASKFORGE WORKSPACE</p>
+              <h1 id="global-search-title">Search everything</h1>
+              <p class="welcome__subtitle">Find tasks, activities, habits, goals, and upcoming reminders.</p>
+            </div>
+          </div>
+          <section class="panel global-search-panel" aria-label="Universal search">
+            <label class="global-search-input">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" /></svg>
+              <span class="visually-hidden">Search all TaskForge records</span>
+              <input id="global-search-input" type="search" placeholder="Search everything..." autocomplete="off" aria-controls="global-search-results" aria-describedby="global-search-status" aria-activedescendant="" />
+              <kbd class="global-search-input__shortcut" aria-hidden="true">ESC</kbd>
+              <button class="global-search-input__clear" id="global-search-clear" type="button" aria-label="Clear search" hidden>×</button>
+            </label>
+            <div class="global-search-filters" role="group" aria-label="Filter search category">
+              <button class="filter-button filter-button--active" type="button" data-search-category="all" aria-pressed="true">All</button>
+              <button class="filter-button" type="button" data-search-category="tasks" aria-pressed="false">Tasks</button>
+              <button class="filter-button" type="button" data-search-category="activities" aria-pressed="false">Activities</button>
+              <button class="filter-button" type="button" data-search-category="habits" aria-pressed="false">Habits</button>
+              <button class="filter-button" type="button" data-search-category="goals" aria-pressed="false">Goals</button>
+              <button class="filter-button" type="button" data-search-category="notifications" aria-pressed="false">Notifications</button>
+            </div>
+            <div class="global-search-recent" id="global-search-recent" hidden>
+              <div class="global-search-recent__header">
+                <h2>Recent searches</h2>
+                <button class="text-button" id="clear-recent-searches" type="button">Clear history</button>
+              </div>
+              <div class="global-search-recent__list" id="global-search-recent-list"></div>
+            </div>
+            <p class="global-search-status" id="global-search-status" role="status" aria-live="polite">Start typing to search your workspace.</p>
+            <div class="global-search-results" id="global-search-results" role="listbox" aria-label="Search results"></div>
+            <p class="global-search-shortcuts"><kbd>↑</kbd><kbd>↓</kbd> to navigate <span>·</span> <kbd>Enter</kbd> to open <span>·</span> <kbd>Esc</kbd> to clear</p>
+          </section>
+        </section>
 
         <section class="page-view tasks-view" data-view="tasks" aria-labelledby="tasks-page-title" hidden>
           <div class="tasks-view__header">
@@ -292,6 +350,96 @@
           </section>
         </section>
 
+        <section class="page-view tracker-view" data-view="habits" aria-labelledby="habits-page-title" hidden>
+          <div class="tracker-view__header">
+            <div>
+              <p class="welcome__date">DAILY PRACTICE</p>
+              <h1 id="habits-page-title">Habit Tracker</h1>
+              <p class="welcome__subtitle">Build consistency with small actions that add up.</p>
+            </div>
+            <button class="primary-button" id="new-habit-button" type="button">New habit</button>
+          </div>
+          <section class="panel habit-daily-summary" aria-labelledby="habit-daily-title">
+            <div class="habit-daily-summary__header">
+              <div>
+                <h2 id="habit-daily-title">Daily progress</h2>
+                <p id="habit-selected-date-label">Today's scheduled habits</p>
+              </div>
+              <div class="habit-date-controls">
+                <button class="icon-button" id="habit-previous-day" type="button" aria-label="Previous day">‹</button>
+                <button class="secondary-button" id="habit-today-button" type="button">Today</button>
+                <button class="icon-button" id="habit-next-day" type="button" aria-label="Next day">›</button>
+                <label class="visually-hidden" for="habit-selected-date">Choose habit date</label>
+                <input id="habit-selected-date" type="date" />
+              </div>
+            </div>
+            <div class="habit-progress-summary">
+              <div class="habit-progress-summary__ring" id="habit-progress-ring" role="progressbar" aria-label="Habit completion today" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <strong id="habit-rate-today">0%</strong>
+              </div>
+              <div class="habit-progress-summary__details">
+                <strong><span id="habit-completed-today">0</span> of <span id="habit-total-today">0</span> due habits complete</strong>
+                <span id="habit-progress-caption">Add a habit to start building your routine.</span>
+              </div>
+            </div>
+          </section>
+          <section class="habit-history-grid" aria-label="Habit completion history">
+            <section class="panel habit-history-card" aria-labelledby="habit-weekly-history-title">
+              <div class="panel__header">
+                <div><h2 id="habit-weekly-history-title">This week</h2><p class="panel__subtitle">Completions against scheduled habits</p></div>
+                <strong class="habit-history-rate" id="habit-weekly-rate">—</strong>
+              </div>
+              <div class="habit-week-chart" id="habit-week-chart"></div>
+            </section>
+            <section class="panel habit-history-card" aria-labelledby="habit-monthly-history-title">
+              <div class="panel__header">
+                <div><h2 id="habit-monthly-history-title">This month</h2><p class="panel__subtitle">Daily completion history</p></div>
+                <strong class="habit-history-rate" id="habit-monthly-rate">—</strong>
+              </div>
+              <div class="habit-month-grid" id="habit-month-grid"></div>
+            </section>
+          </section>
+          <section class="panel tracker-list-panel" aria-labelledby="habit-list-title">
+            <div class="panel__header tracker-list-panel__header">
+              <div><h2 id="habit-list-title">Your habits</h2><p class="panel__subtitle">Current and archived routines</p></div>
+              <div class="tracker-filters" role="group" aria-label="Filter habits">
+                <button class="filter-button filter-button--active" type="button" data-habit-filter="active" aria-pressed="true">Active</button>
+                <button class="filter-button" type="button" data-habit-filter="inactive" aria-pressed="false">Inactive</button>
+                <button class="filter-button" type="button" data-habit-filter="archived" aria-pressed="false">Archived</button>
+              </div>
+            </div>
+            <div class="tracker-card-list" id="habit-list" aria-live="polite"></div>
+          </section>
+        </section>
+
+        <section class="page-view tracker-view" data-view="goals" aria-labelledby="goals-page-title" hidden>
+          <div class="tracker-view__header">
+            <div>
+              <p class="welcome__date">DIRECTION & MILESTONES</p>
+              <h1 id="goals-page-title">Goal Tracker</h1>
+              <p class="welcome__subtitle">Turn longer ambitions into clear, manageable progress.</p>
+            </div>
+            <button class="primary-button" id="new-goal-button" type="button">New goal</button>
+          </div>
+          <section class="goal-overview-grid" aria-label="Goal overview">
+            <article class="panel goal-overview-card"><span>Active goals</span><strong id="goal-active-count">0</strong></article>
+            <article class="panel goal-overview-card"><span>Completed goals</span><strong id="goal-completed-count">0</strong></article>
+            <article class="panel goal-overview-card"><span>Overdue goals</span><strong id="goal-overdue-count">0</strong></article>
+            <article class="panel goal-overview-card"><span>Completion rate</span><strong id="goal-completion-rate">—</strong></article>
+          </section>
+          <section class="panel tracker-list-panel" aria-labelledby="goal-list-title">
+            <div class="panel__header tracker-list-panel__header">
+              <div><h2 id="goal-list-title">Your goals</h2><p class="panel__subtitle">Short-term wins and long-term milestones</p></div>
+              <div class="tracker-filters" role="group" aria-label="Filter goals">
+                <button class="filter-button filter-button--active" type="button" data-goal-filter="active" aria-pressed="true">Active</button>
+                <button class="filter-button" type="button" data-goal-filter="completed" aria-pressed="false">Completed</button>
+                <button class="filter-button" type="button" data-goal-filter="archived" aria-pressed="false">Archived</button>
+              </div>
+            </div>
+            <div class="tracker-card-list" id="goal-list" aria-live="polite"></div>
+          </section>
+        </section>
+
         <section class="page-view" data-view="focus" aria-labelledby="focus-page-title" hidden>
           <div class="focus-view__header">
             <div>
@@ -333,6 +481,11 @@
             </section>
 
             <aside class="focus-side">
+              <section class="panel focus-live-clock" aria-labelledby="focus-live-clock-title">
+                <div class="focus-live-clock__label" id="focus-live-clock-title">LOCAL SYSTEM TIME</div>
+                <time class="focus-live-clock__display" id="focus-live-clock" aria-label="Current local time">--:--:--</time>
+                <span class="focus-live-clock__status"><span aria-hidden="true"></span> LIVE CLOCK</span>
+              </section>
               <section class="panel focus-statistics" aria-labelledby="focus-statistics-title">
                 <div class="panel__header">
                   <div>
@@ -367,7 +520,7 @@
             <div>
               <p class="welcome__date">PRODUCTIVITY</p>
               <h1 id="analytics-page-title">Analytics</h1>
-              <p class="welcome__subtitle">A clear view of your tasks, schedule, and focus progress.</p>
+              <p class="welcome__subtitle">A clear view of your tasks, schedule, habits, goals, and focus progress.</p>
             </div>
             <span class="analytics-period" id="analytics-week-period"></span>
           </div>
@@ -379,7 +532,7 @@
             <div class="analytics-score__details">
               <h2 id="productivity-score-title">How the score is calculated</h2>
               <p id="analytics-score-description">A simple average of relevant daily progress measures.</p>
-              <p class="analytics-score__formula">The score averages available daily progress measures: task completion rate when tasks were created today, focus progress toward 4 sessions when there is activity, and scheduled activity completion when activities are scheduled today. This is a general progress indicator, not a scientific measure.</p>
+              <p class="analytics-score__formula">The score averages available daily measures from tasks, focus sessions, scheduled activities, and habits. Goal completion is shown in the overview below. This is a general progress indicator, not a scientific measure.</p>
             </div>
           </section>
           <section class="analytics-section" aria-labelledby="daily-analytics-title">
@@ -418,6 +571,15 @@
               </section>
             </div>
           </section>
+          <section class="analytics-section" aria-labelledby="habit-goal-analytics-title">
+            <div class="analytics-section__heading">
+              <div>
+                <p class="welcome__date">LONG-TERM CONSISTENCY</p>
+                <h2 id="habit-goal-analytics-title">Habits &amp; goals overview</h2>
+              </div>
+            </div>
+            <div class="analytics-metrics" id="habit-goal-analytics"></div>
+          </section>
         </section>
 
         <section class="page-view" data-view="settings" aria-labelledby="settings-page-title" hidden>
@@ -440,7 +602,7 @@
               <div class="settings-card__body">
                 <fieldset class="theme-picker" aria-describedby="theme-picker-help">
                   <legend>Theme</legend>
-                  <p id="theme-picker-help">Choose a visual foundation. Future themes will appear here when they are ready.</p>
+                  <p id="theme-picker-help">Choose a visual foundation. Theme preferences save automatically.</p>
                   <div class="theme-picker__choices" role="radiogroup" aria-label="Application theme">
                     <label class="theme-choice">
                       <input type="radio" name="theme" value="dark" />
@@ -482,6 +644,20 @@
                       <span class="theme-choice__swatch theme-choice__swatch--purple-haze" aria-hidden="true"></span>
                       <span class="theme-choice__name">Purple Haze</span>
                       <span class="theme-choice__description">Elegant violet workspace</span>
+                      <span class="theme-choice__active" aria-hidden="true">Active</span>
+                    </label>
+                    <label class="theme-choice">
+                      <input type="radio" name="theme" value="solar-flare" />
+                      <span class="theme-choice__swatch theme-choice__swatch--solar-flare" aria-hidden="true"></span>
+                      <span class="theme-choice__name">Solar Flare</span>
+                      <span class="theme-choice__description">Warm metallic energy</span>
+                      <span class="theme-choice__active" aria-hidden="true">Active</span>
+                    </label>
+                    <label class="theme-choice">
+                      <input type="radio" name="theme" value="arctic-frost" />
+                      <span class="theme-choice__swatch theme-choice__swatch--arctic-frost" aria-hidden="true"></span>
+                      <span class="theme-choice__name">Arctic Frost</span>
+                      <span class="theme-choice__description">Cool technical clarity</span>
                       <span class="theme-choice__active" aria-hidden="true">Active</span>
                     </label>
                   </div>
@@ -606,11 +782,33 @@
                   <label class="settings-toggle">
                     <span>
                       <strong>Desktop notifications</strong>
-                      <small>Show a system notification when a focus or break session ends.</small>
+                      <small>Master switch for all TaskForge reminders and focus notifications.</small>
                     </span>
                     <input id="desktop-notifications-enabled" name="notificationsEnabled" type="checkbox" />
                   </label>
                 </div>
+                <section class="notification-preferences" aria-labelledby="notification-preferences-title">
+                  <div>
+                    <h3 id="notification-preferences-title">Reminder categories</h3>
+                    <p>Choose which desktop reminders TaskForge may show. Completed or archived items are skipped.</p>
+                  </div>
+                  <div class="notification-preferences__categories">
+                    <label class="settings-toggle"><span><strong>Tasks</strong><small>Deadlines, overdue tasks, and custom reminders.</small></span><input id="notify-tasks" type="checkbox" /></label>
+                    <label class="settings-toggle"><span><strong>Schedule</strong><small>Upcoming activities and per-activity reminders.</small></span><input id="notify-schedule" type="checkbox" /></label>
+                    <label class="settings-toggle"><span><strong>Habits</strong><small>Daily or selected-weekday habit nudges.</small></span><input id="notify-habits" type="checkbox" /></label>
+                    <label class="settings-toggle"><span><strong>Goals</strong><small>Upcoming and overdue goal deadlines.</small></span><input id="notify-goals" type="checkbox" /></label>
+                    <label class="settings-toggle"><span><strong>Focus timer</strong><small>Notify when a focus or break session completes.</small></span><input id="notify-focus" type="checkbox" /></label>
+                  </div>
+                  <div class="notification-preferences__timing">
+                    <label class="form-field"><span>Task deadline notice</span><select id="task-reminder-days"><option value="0">On the due date</option><option value="1">1 day before</option><option value="3">3 days before</option><option value="7">7 days before</option><option value="14">14 days before</option><option value="30">30 days before</option></select></label>
+                    <label class="form-field"><span>Task reminder time</span><input id="task-reminder-time" type="time" /></label>
+                    <label class="form-field"><span>Activity reminder</span><select id="schedule-reminder-minutes"><option value="5">5 minutes before</option><option value="10">10 minutes before</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option></select></label>
+                    <label class="form-field"><span>Habit reminder time</span><input id="habit-reminder-time" type="time" /></label>
+                    <label class="form-field"><span>Goal deadline notice</span><select id="goal-reminder-days"><option value="0">On the target date</option><option value="1">1 day before</option><option value="3">3 days before</option><option value="7">7 days before</option><option value="14">14 days before</option><option value="30">30 days before</option></select></label>
+                    <label class="form-field"><span>Goal reminder time</span><input id="goal-reminder-time" type="time" /></label>
+                  </div>
+                  <p class="form-hint">Reminders missed by more than 15 minutes while TaskForge was closed are skipped rather than shown late. Times use your local system clock.</p>
+                </section>
                 <p class="form-error" id="app-settings-error" role="alert" hidden></p>
                 <button class="primary-button" id="save-app-settings" type="submit">Save clock &amp; notification preferences</button>
               </div>
@@ -647,6 +845,44 @@
               </div>
             </form>
 
+            <section class="panel settings-card data-management-card" aria-labelledby="data-management-title">
+              <div class="panel__header">
+                <div>
+                  <h2 id="data-management-title">Data management</h2>
+                  <p class="panel__subtitle">Create a portable copy of your workspace or restore from an earlier TaskForge backup.</p>
+                </div>
+              </div>
+              <div class="settings-card__body data-management">
+                <p>Backups include tasks, schedules, focus statistics and timer preferences, habits and completion history, goals and milestones, and application appearance settings.</p>
+                <div class="data-management__actions">
+                  <button class="primary-button" id="export-backup" type="button">Export backup</button>
+                  <button class="secondary-button" id="restore-backup" type="button">Restore backup</button>
+                </div>
+                <p class="data-management__last-backup" id="last-backup-information" role="status">Loading backup information…</p>
+                <p class="settings-card__hint">Restoring replaces current data. TaskForge validates the selected file, asks for confirmation, and saves a safety backup before making changes.</p>
+                <p class="form-error" id="data-management-error" role="alert" hidden></p>
+              </div>
+            </section>
+
+            <section class="panel settings-card keyboard-shortcuts-card" aria-labelledby="keyboard-shortcuts-title">
+              <div class="panel__header">
+                <div>
+                  <h2 id="keyboard-shortcuts-title">Keyboard shortcuts</h2>
+                  <p class="panel__subtitle">Quickly navigate TaskForge and open common actions.</p>
+                </div>
+              </div>
+              <div class="settings-card__body">
+                <label class="shortcut-manual-search">
+                  <span class="visually-hidden">Filter keyboard shortcuts</span>
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" /></svg>
+                  <input id="shortcut-manual-search" type="search" autocomplete="off" aria-controls="shortcut-manual-categories" placeholder="Find a shortcut…" />
+                </label>
+                <p class="shortcut-manual-status" id="shortcut-manual-status" role="status" aria-live="polite"></p>
+                <div class="keyboard-shortcuts-manual" id="shortcut-manual-categories" aria-label="Keyboard shortcut reference"></div>
+                <p class="shortcut-manual-empty" id="shortcut-manual-empty" hidden>No shortcuts match your search.</p>
+              </div>
+            </section>
+
             <section class="panel settings-card" aria-labelledby="application-settings-title">
               <div class="panel__header">
                 <div>
@@ -658,16 +894,75 @@
                 <p>TaskForge brings tasks, daily planning, focus sessions, and productivity analytics together in one private desktop workspace.</p>
                 <dl>
                   <div><dt>Version</dt><dd id="application-version">Loading…</dd></div>
-                  <div><dt>Author</dt><dd>Wasiqur Rahman</dd></div>
                 </dl>
+                <p class="creator-signature" id="creator-signature"></p>
                 <button class="danger-button" id="reset-application-data" type="button">Reset application data</button>
-                <p class="settings-card__hint">This permanently removes your tasks, schedule, focus statistics, and saved preferences.</p>
+                <p class="settings-card__hint">This permanently removes your tasks, schedule, habits, goals, focus statistics, and saved preferences.</p>
               </div>
             </section>
           </div>
         </section>
       </main>
     </div>
+    <dialog class="app-dialog" id="habit-dialog" aria-labelledby="habit-dialog-title">
+      <form class="dialog-card" id="habit-form" novalidate>
+        <div class="dialog-header">
+          <div><p class="welcome__date">DAILY PRACTICE</p><h2 id="habit-dialog-title">Create a habit</h2></div>
+          <button class="icon-button" id="close-habit-dialog" type="button" aria-label="Close dialog">×</button>
+        </div>
+        <label class="form-field"><span>Name <strong aria-hidden="true">*</strong></span><input id="habit-name" type="text" maxlength="80" required autocomplete="off" /></label>
+        <label class="form-field"><span>Description <small>Optional</small></span><textarea id="habit-description" rows="3" maxlength="500"></textarea></label>
+        <label class="form-field">
+          <span>Frequency</span>
+          <select id="habit-frequency"><option value="daily">Every day</option><option value="weekly">Selected weekdays</option></select>
+        </label>
+        <fieldset class="habit-weekday-options" id="habit-weekday-options" hidden>
+          <legend>Repeat on</legend>
+          <label><input type="checkbox" value="1" /> Mon</label>
+          <label><input type="checkbox" value="2" /> Tue</label>
+          <label><input type="checkbox" value="3" /> Wed</label>
+          <label><input type="checkbox" value="4" /> Thu</label>
+          <label><input type="checkbox" value="5" /> Fri</label>
+          <label><input type="checkbox" value="6" /> Sat</label>
+          <label><input type="checkbox" value="0" /> Sun</label>
+        </fieldset>
+        <p class="form-error" id="habit-form-error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button class="secondary-button" id="cancel-habit-dialog" type="button">Cancel</button>
+          <button class="primary-button" id="save-habit-button" type="submit">Create habit</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="app-dialog" id="goal-dialog" aria-labelledby="goal-dialog-title">
+      <form class="dialog-card" id="goal-form" novalidate>
+        <div class="dialog-header">
+          <div><p class="welcome__date">DIRECTION &amp; MILESTONES</p><h2 id="goal-dialog-title">Create a goal</h2></div>
+          <button class="icon-button" id="close-goal-dialog" type="button" aria-label="Close dialog">×</button>
+        </div>
+        <label class="form-field"><span>Title <strong aria-hidden="true">*</strong></span><input id="goal-title" type="text" maxlength="120" required autocomplete="off" /></label>
+        <label class="form-field"><span>Description <small>Optional</small></span><textarea id="goal-description" rows="3" maxlength="2000"></textarea></label>
+        <div class="form-row">
+          <label class="form-field"><span>Category <small>Optional</small></span><input id="goal-category" type="text" maxlength="60" /></label>
+          <label class="form-field"><span>Goal horizon</span><select id="goal-term"><option value="short">Short-term</option><option value="long">Long-term</option></select></label>
+        </div>
+        <div class="form-row">
+          <label class="form-field"><span>Priority</span><select id="goal-priority"><option>High</option><option selected>Medium</option><option>Low</option></select></label>
+          <label class="form-field"><span>Manual progress (%)</span><input id="goal-progress" type="number" min="0" max="100" step="1" value="0" aria-describedby="goal-progress-help" /></label>
+        </div>
+        <p class="form-hint" id="goal-progress-help">Progress is calculated from milestones when a goal has any.</p>
+        <div class="form-row">
+          <label class="form-field"><span>Start date</span><input id="goal-start-date" type="date" required /></label>
+          <label class="form-field"><span>Target date <strong aria-hidden="true">*</strong></span><input id="goal-target-date" type="date" required /></label>
+        </div>
+        <p class="form-error" id="goal-form-error" role="alert" hidden></p>
+        <div class="dialog-actions">
+          <button class="secondary-button" id="cancel-goal-dialog" type="button">Cancel</button>
+          <button class="primary-button" id="save-goal-button" type="submit">Create goal</button>
+        </div>
+      </form>
+    </dialog>
+
     <dialog class="app-dialog" id="task-dialog" aria-labelledby="task-dialog-title">
       <form class="dialog-card" id="task-form" novalidate>
         <div class="dialog-header">
@@ -694,11 +989,21 @@
               <option>Low</option>
             </select>
           </label>
-          <label class="form-field">
-            <span>Due date <small>Optional</small></span>
-            <input id="task-due-date" name="dueDate" type="date" />
-          </label>
+          <div class="form-field">
+            <span id="task-due-date-label">Due date <small>Optional</small></span>
+            <div class="form-date-control">
+              <input id="task-due-date-display" class="form-date-control__display" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" autocomplete="off" aria-labelledby="task-due-date-label" />
+              <button class="icon-button form-date-control__button" id="task-due-date-open" type="button" aria-label="Choose due date">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2" stroke="currentColor" stroke-width="1.7"></rect><path d="M7.5 3.5v3M16.5 3.5v3M4 9.5h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path></svg>
+              </button>
+              <input id="task-due-date" class="form-date-control__native" name="dueDate" type="date" tabindex="-1" aria-hidden="true" />
+            </div>
+          </div>
         </div>
+        <label class="form-field">
+          <span>Custom reminder <small>Optional · local time</small></span>
+          <input id="task-reminder-at" type="datetime-local" />
+        </label>
         <p class="form-error" id="task-form-error" role="alert" hidden></p>
         <div class="dialog-actions">
           <button class="secondary-button" id="cancel-task-dialog" type="button">Cancel</button>
@@ -746,10 +1051,16 @@
           <textarea id="activity-description" name="description" rows="3" maxlength="2000"></textarea>
         </label>
         <div class="form-row schedule-form-row">
-          <label class="form-field">
-            <span>Date <strong aria-hidden="true">*</strong></span>
-            <input id="activity-date" name="date" type="date" required />
-          </label>
+          <div class="form-field">
+            <span id="activity-date-label">Date <strong aria-hidden="true">*</strong></span>
+            <div class="form-date-control">
+              <input id="activity-date-display" class="form-date-control__display" type="text" inputmode="numeric" placeholder="DD/MM/YYYY" maxlength="10" autocomplete="off" aria-labelledby="activity-date-label" required />
+              <button class="icon-button form-date-control__button" id="activity-date-open" type="button" aria-label="Choose activity date">
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="2" stroke="currentColor" stroke-width="1.7"></rect><path d="M7.5 3.5v3M16.5 3.5v3M4 9.5h16" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"></path></svg>
+              </button>
+              <input id="activity-date" class="form-date-control__native" name="date" type="date" tabindex="-1" aria-hidden="true" />
+            </div>
+          </div>
           <label class="form-field">
             <span>Category <small>Optional</small></span>
             <input id="activity-category" name="category" type="text" maxlength="60" placeholder="e.g. Work" />
@@ -765,6 +1076,18 @@
             <input id="activity-end-time" name="endTime" type="time" required />
           </label>
         </div>
+        <label class="form-field">
+          <span>Reminder</span>
+          <select id="activity-reminder-minutes">
+            <option value="">Use settings default</option>
+            <option value="5">5 minutes before</option>
+            <option value="10">10 minutes before</option>
+            <option value="15">15 minutes before</option>
+            <option value="30">30 minutes before</option>
+            <option value="60">1 hour before</option>
+            <option value="1440">1 day before</option>
+          </select>
+        </label>
         <p class="form-error" id="activity-form-error" role="alert" hidden></p>
         <div class="dialog-actions">
           <button class="secondary-button" id="cancel-activity-dialog" type="button">Cancel</button>
@@ -793,7 +1116,41 @@
         </div>
       </div>
     </dialog>
+    <dialog class="app-dialog notification-center" id="notification-center-dialog" aria-labelledby="notification-center-title">
+      <section class="notification-center__card">
+        <header class="dialog-header">
+          <div>
+            <p class="welcome__date">TASKFORGE REMINDERS</p>
+            <h2 id="notification-center-title">Notifications</h2>
+          </div>
+          <button class="icon-button" id="close-notification-center" type="button" aria-label="Close notifications">×</button>
+        </header>
+        <p class="notification-center__summary" id="notification-center-summary" aria-live="polite"></p>
+        <div class="notification-center__list" id="notification-center-list" aria-live="polite"></div>
+      </section>
+    </dialog>
+    <dialog class="command-palette" id="command-palette-dialog" aria-labelledby="command-palette-title">
+      <section class="command-palette__panel">
+        <h2 class="visually-hidden" id="command-palette-title">Command Palette</h2>
+        <label class="command-palette__search">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4 4" /></svg>
+          <span class="visually-hidden">Search commands</span>
+          <input id="command-palette-input" type="search" autocomplete="off" placeholder="Search commands and actions…" role="combobox" aria-autocomplete="list" aria-controls="command-palette-list" aria-expanded="true" />
+          <kbd>ESC</kbd>
+        </label>
+        <p class="command-palette__status" id="command-palette-status" role="status" aria-live="polite"></p>
+        <div class="command-palette__list" id="command-palette-list" role="listbox" aria-label="Available commands"></div>
+        <footer class="command-palette__footer">
+          <span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span>
+          <span><kbd>↵</kbd> Run command</span>
+          <span><kbd>Esc</kbd> Close</span>
+        </footer>
+      </section>
+    </dialog>
     <div class="toast" id="task-toast" role="status" aria-live="polite"></div>
+    <script src="./command-palette-service.js" defer></script>
+    <script src="./keyboard-shortcuts.js" defer></script>
+    <script src="./search-service.js" defer></script>
     <script src="./renderer.js" defer></script>
   </body>
 </html>

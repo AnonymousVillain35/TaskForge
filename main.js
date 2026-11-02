@@ -1,19 +1,48 @@
-const { app, BrowserWindow, ipcMain, Notification } = require('electron');
+const {
+  app,
+  BrowserWindow,
+  dialog,
+  ipcMain,
+  Notification,
+  powerMonitor,
+} = require('electron');
 const fs = require('node:fs/promises');
 const path = require('node:path');
 const taskStore = require('./src/task-store');
 const scheduleStore = require('./src/schedule-store');
 const focusStore = require('./src/focus-store');
+const habitStore = require('./src/habit-store');
+const goalStore = require('./src/goal-store');
 const appSettingsStore = require('./src/app-settings-store');
+const backupStore = require('./src/backup-store');
+const notificationStore = require('./src/notification-store');
+const notificationService = require('./src/notification-service');
 
 const taskFilePath = () => path.join(app.getPath('userData'), 'taskforge-tasks.json');
 const scheduleFilePath = () => path.join(app.getPath('userData'), 'schedules.json');
 const focusFilePath = () => path.join(app.getPath('userData'), 'focus.json');
 const appSettingsFilePath = () => path.join(app.getPath('userData'), 'settings.json');
+const habitFilePath = () => path.join(app.getPath('userData'), 'habits.json');
+const goalFilePath = () => path.join(app.getPath('userData'), 'goals.json');
+const backupStateFilePath = () => path.join(app.getPath('userData'), 'backup-state.json');
+const notificationStateFilePath = () => path.join(app.getPath('userData'), 'notification-state.json');
+const backupFilePaths = () => ({
+  tasks: taskFilePath(),
+  schedules: scheduleFilePath(),
+  focus: focusFilePath(),
+  habits: habitFilePath(),
+  goals: goalFilePath(),
+  settings: appSettingsFilePath(),
+});
 let taskOperations = Promise.resolve();
 let mainWindow;
 let focusTimer = null;
 let focusTimerTimeout = null;
+let notificationTimer = null;
+let notificationRefreshQueued = false;
+let notificationRefreshRevision = 0;
+const maximumNotificationTimeoutMs = 60 * 60 * 1000;
+const notificationRetryIntervalMs = 60 * 1000;
 
 const timerModes = new Set(['focus', 'shortBreak', 'longBreak']);
 const maximumTimerMs = focusStore.durationLimits.maximum * 60 * 1000;
@@ -24,27 +53,232 @@ function runTaskOperation(operation) {
   return result;
 }
 
+function queueNotificationRefresh() {
+  if (notificationRefreshQueued) {
+    return;
+  }
+  notificationRefreshQueued = true;
+  setTimeout(() => {
+    notificationRefreshQueued = false;
+    refreshNotificationSchedule().catch((error) => {
+      console.error('Could not refresh desktop reminders.', error);
+    });
+  }, 0);
+}
+
+function pauseNotificationSchedule() {
+  notificationRefreshRevision += 1;
+  if (notificationTimer) {
+    clearTimeout(notificationTimer);
+    notificationTimer = null;
+  }
+}
+
+function runDataOperation(operation) {
+  return runTaskOperation(operation).then((result) => {
+    queueNotificationRefresh();
+    return result;
+  });
+}
+
+function showReminderNotification(event) {
+  if (!Notification.isSupported()) {
+    return false;
+  }
+  try {
+    const notification = new Notification({
+      title: event.title,
+      body: event.body,
+    });
+    notification.show();
+    return true;
+  } catch (error) {
+    console.error(`Could not display ${event.category} reminder "${event.id}".`, error);
+    return false;
+  }
+}
+
+async function refreshNotificationSchedule() {
+  const revision = ++notificationRefreshRevision;
+  if (notificationTimer) {
+    clearTimeout(notificationTimer);
+    notificationTimer = null;
+  }
+  try {
+    const snapshot = await runTaskOperation(async () => {
+      const [settings, tasks, activities, habits, goals] = await Promise.all([
+        appSettingsStore.loadSettings(appSettingsFilePath()),
+        taskStore.loadTasks(taskFilePath()),
+        scheduleStore.loadActivities(scheduleFilePath()),
+        habitStore.loadHabits(habitFilePath()),
+        goalStore.loadGoals(goalFilePath()),
+      ]);
+      return { settings, tasks, activities, habits, goals };
+    });
+    if (revision !== notificationRefreshRevision
+      || !snapshot.settings.notificationsEnabled
+      || !Notification.isSupported()) {
+      return;
+    }
+
+    const now = Date.now();
+    const events = notificationService.buildReminderEvents(snapshot, new Date(now));
+    const dueEvents = notificationService.getDueEvents(events, now);
+    const deliveryFailed = dueEvents.length > 0 && await runTaskOperation(async () => {
+      const [currentSettings, tasks, activities, habits, goals] = await Promise.all([
+        appSettingsStore.loadSettings(appSettingsFilePath()),
+        taskStore.loadTasks(taskFilePath()),
+        scheduleStore.loadActivities(scheduleFilePath()),
+        habitStore.loadHabits(habitFilePath()),
+        goalStore.loadGoals(goalFilePath()),
+      ]);
+      if (revision !== notificationRefreshRevision || !currentSettings.notificationsEnabled) {
+        return false;
+      }
+      const currentDueEvents = notificationService.getDueEvents(
+        notificationService.buildReminderEvents(
+          { settings: currentSettings, tasks, activities, habits, goals },
+        ),
+      );
+      const currentEventsById = new Map(currentDueEvents.map((event) => [event.id, event]));
+      const deliveredIds = new Set(
+        (await notificationStore.loadDelivered(notificationStateFilePath()))
+          .map((entry) => entry.id),
+      );
+      const deliveredAt = new Date().toISOString();
+      const newlyDelivered = [];
+      let failed = false;
+      for (const event of dueEvents) {
+        if (revision !== notificationRefreshRevision) {
+          return false;
+        }
+        const currentEvent = currentEventsById.get(event.id);
+        if (!currentEvent || deliveredIds.has(event.id)) {
+          continue;
+        }
+        if (!showReminderNotification(currentEvent)) {
+          failed = true;
+          continue;
+        }
+        newlyDelivered.push({ id: currentEvent.id, deliveredAt });
+        deliveredIds.add(currentEvent.id);
+      }
+      await notificationStore.markDeliveredMany(
+        notificationStateFilePath(),
+        newlyDelivered,
+      );
+      return failed;
+    });
+    if (revision !== notificationRefreshRevision) {
+      return;
+    }
+    const nextEvent = notificationService.getNextEvent(events, Date.now());
+    if (deliveryFailed || nextEvent) {
+      const delay = deliveryFailed
+        ? notificationRetryIntervalMs
+        : Math.max(1000, Math.min(maximumNotificationTimeoutMs, nextEvent.at - Date.now()));
+      notificationTimer = setTimeout(() => {
+        notificationTimer = null;
+        refreshNotificationSchedule().catch((error) => {
+          console.error('Could not process scheduled desktop reminders.', error);
+        });
+      }, delay);
+    }
+  } catch (error) {
+    console.error('Could not schedule desktop reminders.', error);
+    if (revision === notificationRefreshRevision) {
+      notificationTimer = setTimeout(() => {
+        notificationTimer = null;
+        refreshNotificationSchedule().catch((refreshError) => {
+          console.error('Could not retry desktop reminder scheduling.', refreshError);
+        });
+      }, notificationRetryIntervalMs);
+    }
+  }
+}
+
 function registerTaskIpc() {
+  ipcMain.handle('notifications:list', () => runTaskOperation(async () => {
+      const [settings, tasks, activities, habits, goals] = await Promise.all([
+        appSettingsStore.loadSettings(appSettingsFilePath()),
+        taskStore.loadTasks(taskFilePath()),
+        scheduleStore.loadActivities(scheduleFilePath()),
+        habitStore.loadHabits(habitFilePath()),
+        goalStore.loadGoals(goalFilePath()),
+      ]);
+      const snapshot = { settings, tasks, activities, habits, goals };
+      const now = Date.now();
+      const events = notificationService.getUpcomingEvents(
+        notificationService.buildReminderEvents(snapshot, new Date(now)),
+        now,
+      );
+      const delivered = new Set(
+        (await notificationStore.loadDelivered(notificationStateFilePath())).map((entry) => entry.id),
+      );
+      return {
+        enabled: snapshot.settings.notificationsEnabled,
+        events: events.filter((event) => !delivered.has(event.id)),
+      };
+  }));
+
   ipcMain.handle('tasks:list', () => runTaskOperation(() => taskStore.loadTasks(taskFilePath())));
   ipcMain.handle('tasks:add', (_event, task) =>
-    runTaskOperation(() => taskStore.addTask(taskFilePath(), task)));
+    runDataOperation(() => taskStore.addTask(taskFilePath(), task)));
   ipcMain.handle('tasks:update', (_event, id, task) =>
-    runTaskOperation(() => taskStore.updateTask(taskFilePath(), id, task)));
+    runDataOperation(() => taskStore.updateTask(taskFilePath(), id, task)));
   ipcMain.handle('tasks:set-completed', (_event, id, completed) =>
-    runTaskOperation(() => taskStore.setTaskCompleted(taskFilePath(), id, completed)));
+    runDataOperation(() => taskStore.setTaskCompleted(taskFilePath(), id, completed)));
   ipcMain.handle('tasks:delete', (_event, id) =>
-    runTaskOperation(() => taskStore.deleteTask(taskFilePath(), id)));
+    runDataOperation(() => taskStore.deleteTask(taskFilePath(), id)));
 
   ipcMain.handle('schedule:list', () =>
     runTaskOperation(() => scheduleStore.loadActivities(scheduleFilePath())));
   ipcMain.handle('schedule:add', (_event, activity, allowOverlap) =>
-    runTaskOperation(() => scheduleStore.addActivity(scheduleFilePath(), activity, allowOverlap)));
+    runDataOperation(() => scheduleStore.addActivity(scheduleFilePath(), activity, allowOverlap)));
   ipcMain.handle('schedule:update', (_event, id, activity, allowOverlap) =>
-    runTaskOperation(() => scheduleStore.updateActivity(scheduleFilePath(), id, activity, allowOverlap)));
+    runDataOperation(() => scheduleStore.updateActivity(scheduleFilePath(), id, activity, allowOverlap)));
   ipcMain.handle('schedule:set-completed', (_event, id, completed) =>
-    runTaskOperation(() => scheduleStore.setActivityCompleted(scheduleFilePath(), id, completed)));
+    runDataOperation(() => scheduleStore.setActivityCompleted(scheduleFilePath(), id, completed)));
   ipcMain.handle('schedule:delete', (_event, id) =>
-    runTaskOperation(() => scheduleStore.deleteActivity(scheduleFilePath(), id)));
+    runDataOperation(() => scheduleStore.deleteActivity(scheduleFilePath(), id)));
+
+  ipcMain.handle('habits:list', () =>
+    runTaskOperation(() => habitStore.loadHabits(habitFilePath())));
+  ipcMain.handle('habits:add', (_event, habit) =>
+    runDataOperation(() => habitStore.addHabit(habitFilePath(), habit)));
+  ipcMain.handle('habits:update', (_event, id, habit) =>
+    runDataOperation(() => habitStore.updateHabit(habitFilePath(), id, habit)));
+  ipcMain.handle('habits:set-completion', (_event, id, date, completed) =>
+    runDataOperation(() => habitStore.setHabitCompletion(habitFilePath(), id, date, completed)));
+  ipcMain.handle('habits:set-active', (_event, id, active) =>
+    runDataOperation(() => habitStore.setHabitActive(habitFilePath(), id, active)));
+  ipcMain.handle('habits:delete', (_event, id) =>
+    runDataOperation(() => habitStore.deleteHabit(habitFilePath(), id)));
+  ipcMain.handle('habits:restore', (_event, id) =>
+    runDataOperation(() => habitStore.restoreHabit(habitFilePath(), id)));
+  ipcMain.handle('habits:analytics', (_event, date) =>
+    runTaskOperation(() => habitStore.getHabitAnalytics(habitFilePath(), date)));
+
+  ipcMain.handle('goals:list', () =>
+    runTaskOperation(() => goalStore.loadGoals(goalFilePath())));
+  ipcMain.handle('goals:add', (_event, goal) =>
+    runDataOperation(() => goalStore.addGoal(goalFilePath(), goal)));
+  ipcMain.handle('goals:update', (_event, id, goal) =>
+    runDataOperation(() => goalStore.updateGoal(goalFilePath(), id, goal)));
+  ipcMain.handle('goals:add-milestone', (_event, id, milestone) =>
+    runDataOperation(() => goalStore.addMilestone(goalFilePath(), id, milestone)));
+  ipcMain.handle('goals:set-milestone-completed', (_event, id, milestoneId, completed) =>
+    runDataOperation(() => goalStore.setMilestoneCompleted(goalFilePath(), id, milestoneId, completed)));
+  ipcMain.handle('goals:delete-milestone', (_event, id, milestoneId) =>
+    runDataOperation(() => goalStore.deleteMilestone(goalFilePath(), id, milestoneId)));
+  ipcMain.handle('goals:set-completed', (_event, id, completed) =>
+    runDataOperation(() => goalStore.setGoalCompleted(goalFilePath(), id, completed)));
+  ipcMain.handle('goals:delete', (_event, id) =>
+    runDataOperation(() => goalStore.deleteGoal(goalFilePath(), id)));
+  ipcMain.handle('goals:restore', (_event, id) =>
+    runDataOperation(() => goalStore.restoreGoal(goalFilePath(), id)));
+  ipcMain.handle('goals:analytics', (_event, date) =>
+    runTaskOperation(() => goalStore.getGoalAnalytics(goalFilePath(), date)));
 
   ipcMain.handle('focus:load', () =>
     runTaskOperation(async () => ({
@@ -62,26 +296,120 @@ function registerTaskIpc() {
   ipcMain.handle('app:settings-load', () =>
     runTaskOperation(() => appSettingsStore.loadSettings(appSettingsFilePath())));
   ipcMain.handle('app:settings-save', (_event, settings) =>
-    runTaskOperation(() => appSettingsStore.saveSettings(appSettingsFilePath(), settings)));
+    runDataOperation(() => appSettingsStore.saveSettings(appSettingsFilePath(), settings)));
   ipcMain.handle('app:get-version', () => app.getVersion());
+  ipcMain.handle('app:backup-last', () =>
+    runTaskOperation(() => backupStore.readLastBackup(backupStateFilePath())));
+  ipcMain.handle('app:backup-export', async () => {
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: 'Export TaskForge backup',
+      defaultPath: path.join(app.getPath('documents'), `TaskForge-backup-${new Date().toISOString().slice(0, 10)}.json`),
+      buttonLabel: 'Save backup',
+      filters: [{ name: 'TaskForge backup', extensions: ['json'] }],
+    });
+    if (result.canceled || !result.filePath) {
+      return { canceled: true };
+    }
+    return runTaskOperation(async () => {
+      const backup = await backupStore.createBackup(backupFilePaths());
+      await backupStore.writeBackupFile(result.filePath, backup);
+      try {
+        await backupStore.writeLastBackup(backupStateFilePath(), {
+          createdAt: backup.createdAt,
+          fileName: path.basename(result.filePath),
+        });
+      } catch (error) {
+        throw new Error(
+          `Backup saved to ${result.filePath}, but its last-backup information could not be saved: ${error.message}`,
+          { cause: error },
+        );
+      }
+      return {
+        canceled: false,
+        createdAt: backup.createdAt,
+        fileName: path.basename(result.filePath),
+        counts: backupStore.getBackupCounts(backup),
+      };
+    });
+  });
+  ipcMain.handle('app:backup-restore', async () => {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      title: 'Choose a TaskForge backup',
+      buttonLabel: 'Validate backup',
+      properties: ['openFile'],
+      filters: [{ name: 'TaskForge backup', extensions: ['json'] }],
+    });
+    if (result.canceled || result.filePaths.length === 0) {
+      return { canceled: true };
+    }
+    const backupPath = result.filePaths[0];
+    const backup = await backupStore.readBackupFile(backupPath);
+    const counts = backupStore.getBackupCounts(backup);
+    const confirmation = await dialog.showMessageBox(mainWindow, {
+      type: 'warning',
+      title: 'Restore TaskForge backup?',
+      message: 'Restoring this backup will replace all current TaskForge data.',
+      detail: `Backup created ${new Date(backup.createdAt).toLocaleString()}.\n\n`
+        + `${counts.tasks} tasks · ${counts.schedules} activities · ${counts.focusSessions} focus sessions · `
+        + `${counts.habits} habits · ${counts.goals} goals.\n\n`
+        + 'A safety backup of your current data will be created before restoration. Continue?',
+      buttons: ['Restore backup', 'Cancel'],
+      defaultId: 1,
+      cancelId: 1,
+      noLink: true,
+    });
+    if (confirmation.response !== 0) {
+      return { canceled: true };
+    }
+    pauseNotificationSchedule();
+    cancelFocusTimer();
+    try {
+      const restored = await runTaskOperation(async () => {
+        const result = await backupStore.restoreBackup(
+          backupFilePaths(),
+          backup,
+          path.join(app.getPath('userData'), 'backups'),
+        );
+        await notificationStore.clearDelivered(notificationStateFilePath());
+        return result;
+      });
+      return {
+        canceled: false,
+        ...restored,
+        createdAt: backup.createdAt,
+        sourceFileName: path.basename(backupPath),
+      };
+    } finally {
+      queueNotificationRefresh();
+    }
+  });
   ipcMain.handle('app:reset-data', () => runTaskOperation(async () => {
     cancelFocusTimer();
+    pauseNotificationSchedule();
     const dataFiles = [
       taskFilePath(),
       scheduleFilePath(),
       focusFilePath(),
       appSettingsFilePath(),
+      habitFilePath(),
+      goalFilePath(),
+      backupStateFilePath(),
+      notificationStateFilePath(),
     ];
-    for (const filePath of dataFiles) {
-      try {
-        await fs.unlink(filePath);
-      } catch (error) {
-        if (error.code !== 'ENOENT') {
-          throw error;
+    try {
+      for (const filePath of dataFiles) {
+        try {
+          await fs.unlink(filePath);
+        } catch (error) {
+          if (error.code !== 'ENOENT') {
+            throw error;
+          }
         }
       }
+      return { version: app.getVersion() };
+    } finally {
+      queueNotificationRefresh();
     }
-    return { version: app.getVersion() };
   }));
 }
 
@@ -220,7 +548,11 @@ async function completeFocusTimer(timer) {
   try {
     const appSettings = await runTaskOperation(() =>
       appSettingsStore.loadSettings(appSettingsFilePath()));
-    showFocusNotification(timer.mode, settings.soundEnabled, appSettings.notificationsEnabled);
+    showFocusNotification(
+      timer.mode,
+      settings.soundEnabled,
+      notificationService.isCategoryEnabled(appSettings, 'focus'),
+    );
   } catch (caughtError) {
     console.error('Could not load notification preferences.', caughtError);
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -249,6 +581,7 @@ function createWindow() {
     height: 700,
     minWidth: 720,
     minHeight: 480,
+    icon: path.join(__dirname, 'assets', 'taskforge.ico'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -267,8 +600,14 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  if (process.platform === 'win32') {
+    app.setAppUserModelId('com.taskforge.desktop');
+  }
   registerTaskIpc();
   createWindow();
+  queueNotificationRefresh();
+
+  powerMonitor.on('resume', queueNotificationRefresh);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
@@ -280,5 +619,13 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+app.on('will-quit', () => {
+  notificationRefreshRevision += 1;
+  if (notificationTimer) {
+    clearTimeout(notificationTimer);
+    notificationTimer = null;
   }
 });

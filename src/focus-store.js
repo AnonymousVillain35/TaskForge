@@ -112,6 +112,30 @@ function isValidData(data) {
     && (data.stats.dailyHistory === undefined || isValidDailyHistory(data.stats.dailyHistory));
 }
 
+function validateBackupData(data) {
+  const expectedSettings = ['focusMinutes', 'shortBreakMinutes', 'longBreakMinutes', 'soundEnabled'];
+  const expectedStats = [
+    'totalCompletedSessions',
+    'totalFocusMinutes',
+    'cycleProgress',
+    'todayDate',
+    'todayCompletedSessions',
+    'todayFocusMinutes',
+    'dailyHistory',
+  ];
+  if (!isPlainObject(data)
+    || Object.keys(data).sort().join(',') !== 'settings,stats'
+    || !isPlainObject(data.settings)
+    || Object.keys(data.settings).sort().join(',') !== expectedSettings.slice().sort().join(',')
+    || !isPlainObject(data.stats)
+    || Object.keys(data.stats).sort().join(',') !== expectedStats.slice().sort().join(',')
+    || !isValidData(data)
+    || !isValidDateKey(data.stats.todayDate)) {
+    throw new TypeError('Backup focus sessions or timer settings are missing or invalid.');
+  }
+  return data;
+}
+
 async function writeData(filePath, data) {
   await fs.mkdir(path.dirname(filePath), { recursive: true });
   const temporaryPath = `${filePath}.${randomUUID()}.tmp`;
@@ -243,4 +267,5 @@ module.exports = {
   recordFocusSession,
   recordLongBreakCompletion,
   saveSettings,
+  validateBackupData,
 };

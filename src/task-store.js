@@ -41,7 +41,15 @@ function validateTaskFields(input) {
     throw new TypeError('Task due date must be a valid calendar date.');
   }
 
-  return { title, description, priority, dueDate };
+  const reminderAt = input.reminderAt === undefined || input.reminderAt === '' ? null : input.reminderAt;
+  if (reminderAt !== null
+    && (typeof reminderAt !== 'string'
+      || Number.isNaN(Date.parse(reminderAt))
+      || new Date(reminderAt).toISOString() !== reminderAt)) {
+    throw new TypeError('Task reminder must be a valid ISO timestamp.');
+  }
+
+  return { title, description, priority, dueDate, reminderAt };
 }
 
 function isValidStoredTask(task) {
@@ -55,6 +63,11 @@ function isValidStoredTask(task) {
     && task.description.length <= 2000
     && priorities.has(task.priority)
     && (task.dueDate === null || isValidDate(task.dueDate))
+    && (task.reminderAt === undefined
+      || task.reminderAt === null
+      || (typeof task.reminderAt === 'string'
+        && !Number.isNaN(Date.parse(task.reminderAt))
+        && new Date(task.reminderAt).toISOString() === task.reminderAt))
     && typeof task.completed === 'boolean'
     && (task.completedAt === undefined
       || task.completedAt === null
@@ -63,6 +76,15 @@ function isValidStoredTask(task) {
     && !Number.isNaN(Date.parse(task.createdAt))
     && typeof task.updatedAt === 'string'
     && !Number.isNaN(Date.parse(task.updatedAt));
+}
+
+function validateBackupTasks(tasks) {
+  if (!Array.isArray(tasks)
+    || !tasks.every(isValidStoredTask)
+    || new Set(tasks.map((task) => task.id)).size !== tasks.length) {
+    throw new TypeError('Backup tasks must be a list of valid, uniquely identified tasks.');
+  }
+  return tasks;
 }
 
 function isValidDate(value) {
@@ -203,4 +225,5 @@ module.exports = {
   loadTasks,
   setTaskCompleted,
   updateTask,
+  validateBackupTasks,
 };

@@ -5,6 +5,7 @@ const { randomUUID } = require('node:crypto');
 const idPattern = /^[\da-f]{8}-[\da-f]{4}-[1-8][\da-f]{3}-[89ab][\da-f]{3}-[\da-f]{12}$/i;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
 const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+const reminderLeadTimes = new Set([5, 10, 15, 30, 60, 1440]);
 
 function isPlainObject(value) {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -56,6 +57,14 @@ function validateActivityFields(input) {
   if (input.endTime <= input.startTime) {
     throw new TypeError('Activity end time must be later than its start time.');
   }
+  const reminderMinutesBefore = input.reminderMinutesBefore === undefined
+    || input.reminderMinutesBefore === null
+    || input.reminderMinutesBefore === ''
+    ? null
+    : Number(input.reminderMinutesBefore);
+  if (reminderMinutesBefore !== null && !reminderLeadTimes.has(reminderMinutesBefore)) {
+    throw new TypeError('Activity reminder lead time must be 5, 10, 15, 30, 60, or 1440 minutes.');
+  }
 
   return {
     title,
@@ -64,6 +73,7 @@ function validateActivityFields(input) {
     endTime: input.endTime,
     date: input.date,
     category: category.trim(),
+    reminderMinutesBefore,
   };
 }
 
@@ -84,6 +94,9 @@ function isValidStoredActivity(activity) {
     || typeof activity.endTime !== 'string'
     || !timePattern.test(activity.endTime)
     || activity.endTime <= activity.startTime
+    || (activity.reminderMinutesBefore !== undefined
+      && activity.reminderMinutesBefore !== null
+      && !reminderLeadTimes.has(activity.reminderMinutesBefore))
     || typeof activity.completed !== 'boolean'
     || (activity.completedAt !== undefined
       && activity.completedAt !== null
@@ -95,6 +108,15 @@ function isValidStoredActivity(activity) {
     return false;
   }
   return true;
+}
+
+function validateBackupActivities(activities) {
+  if (!Array.isArray(activities)
+    || !activities.every(isValidStoredActivity)
+    || new Set(activities.map((activity) => activity.id)).size !== activities.length) {
+    throw new TypeError('Backup schedules must be a list of valid, uniquely identified activities.');
+  }
+  return activities;
 }
 
 async function writeActivities(filePath, activities) {
@@ -255,4 +277,5 @@ module.exports = {
   loadActivities,
   setActivityCompleted,
   updateActivity,
+  validateBackupActivities,
 };

@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 128" fill="none">
+  <defs>
+    <linearGradient id="frame" x1="13" y1="10" x2="112" y2="116" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00F0FF"/>
+      <stop offset=".52" stop-color="#22C55E"/>
+      <stop offset="1" stop-color="#A3FF12"/>
+    </linearGradient>
+    <linearGradient id="forge" x1="38" y1="36" x2="100" y2="92" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00F0FF"/>
+      <stop offset=".54" stop-color="#22C55E"/>
+      <stop offset="1" stop-color="#A3FF12"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="#080D14"/>
+  <rect x="5.5" y="5.5" width="117" height="117" rx="26.5" stroke="url(#frame)" stroke-opacity=".8" stroke-width="3"/>
+  <path d="M28 30h72L87 44H73v55H57V44H43L28 30Z" fill="url(#forge)"/>
+  <path d="M28 30h72" stroke="#E8FFF8" stroke-opacity=".7" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="m33 108 11-6h40l11 6" stroke="#00F0FF" stroke-opacity=".52" stroke-width="2" stroke-linecap="round"/>
+  <circle cx="64" cy="17" r="2" fill="#A3FF12"/>
+  <circle cx="111" cy="64" r="2" fill="#00F0FF"/>
+  <text x="146" y="81" fill="#E5F5E9" font-family="Segoe UI, Arial, sans-serif" font-size="54" font-weight="800" letter-spacing="-2">Task</text>
+  <text x="254" y="81" fill="#A3FF12" font-family="Segoe UI, Arial, sans-serif" font-size="54" font-weight="800" letter-spacing="-2">Forge</text>
+  <path d="M148 97h362" stroke="url(#frame)" stroke-opacity=".45" stroke-width="2"/>
+  <text x="149" y="115" fill="#82968A" font-family="Segoe UI, Arial, sans-serif" font-size="12" font-weight="600" letter-spacing="3.2">FOCUS · BUILD · ACHIEVE</text>
+</svg>

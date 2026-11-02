@@ -6,6 +6,21 @@ const defaultSettings = {
   theme: 'dark',
   clockFormat: '12-hour',
   notificationsEnabled: true,
+  notificationCategories: {
+    tasks: true,
+    schedule: true,
+    habits: true,
+    goals: true,
+    focus: true,
+  },
+  reminderTiming: {
+    taskDeadlineDaysBefore: 1,
+    taskReminderTime: '09:00',
+    scheduleReminderMinutesBefore: 15,
+    habitReminderTime: '09:00',
+    goalDeadlineDaysBefore: 7,
+    goalReminderTime: '09:00',
+  },
   accentColor: 'default',
   glowIntensity: 'low',
   density: 'standard',
@@ -26,9 +41,37 @@ function validateSettings(input) {
   const settings = { ...defaultSettings, ...input };
   const validAccentColor = settings.accentColor === 'default'
     || (typeof settings.accentColor === 'string' && /^#[\da-f]{6}$/i.test(settings.accentColor));
-  if (!['dark', 'light', 'hacker', 'crimson', 'cyber-blue', 'purple-haze'].includes(settings.theme)
+  const notificationCategories = settings.notificationCategories ?? defaultSettings.notificationCategories;
+  const reminderTiming = settings.reminderTiming ?? defaultSettings.reminderTiming;
+  if (![
+    'dark',
+    'light',
+    'hacker',
+    'crimson',
+    'cyber-blue',
+    'purple-haze',
+    'solar-flare',
+    'arctic-frost',
+  ].includes(settings.theme)
     || !['12-hour', '24-hour'].includes(settings.clockFormat)
     || typeof settings.notificationsEnabled !== 'boolean'
+    || !isPlainObject(notificationCategories)
+    || Object.keys(notificationCategories).sort().join(',')
+      !== Object.keys(defaultSettings.notificationCategories).sort().join(',')
+    || Object.values(notificationCategories).some((enabled) => typeof enabled !== 'boolean')
+    || !isPlainObject(reminderTiming)
+    || Object.keys(reminderTiming).sort().join(',')
+      !== Object.keys(defaultSettings.reminderTiming).sort().join(',')
+    || !Number.isInteger(reminderTiming.taskDeadlineDaysBefore)
+    || reminderTiming.taskDeadlineDaysBefore < 0
+    || reminderTiming.taskDeadlineDaysBefore > 30
+    || !isValidReminderTime(reminderTiming.taskReminderTime)
+    || ![5, 10, 15, 30, 60].includes(reminderTiming.scheduleReminderMinutesBefore)
+    || !isValidReminderTime(reminderTiming.habitReminderTime)
+    || !Number.isInteger(reminderTiming.goalDeadlineDaysBefore)
+    || reminderTiming.goalDeadlineDaysBefore < 0
+    || reminderTiming.goalDeadlineDaysBefore > 30
+    || !isValidReminderTime(reminderTiming.goalReminderTime)
     || !validAccentColor
     || !['off', 'low', 'medium', 'high'].includes(settings.glowIntensity)
     || !['comfortable', 'standard', 'compact'].includes(settings.density)
@@ -42,6 +85,8 @@ function validateSettings(input) {
     theme: settings.theme,
     clockFormat: settings.clockFormat,
     notificationsEnabled: settings.notificationsEnabled,
+    notificationCategories: { ...notificationCategories },
+    reminderTiming: { ...reminderTiming },
     accentColor: settings.accentColor,
     glowIntensity: settings.glowIntensity,
     density: settings.density,
@@ -49,6 +94,23 @@ function validateSettings(input) {
     animationIntensity: settings.animationIntensity,
     backgroundEffects: settings.backgroundEffects,
   };
+}
+
+function isValidReminderTime(value) {
+  return typeof value === 'string' && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value);
+}
+
+function validateBackupSettings(input) {
+  if (!isPlainObject(input)) {
+    throw new TypeError('Backup application settings are missing or contain unsupported fields.');
+  }
+  const legacyKeys = Object.keys(defaultSettings)
+    .filter((key) => !['notificationCategories', 'reminderTiming'].includes(key));
+  const validKeys = Object.keys(defaultSettings);
+  if (![legacyKeys, validKeys].some((keys) => Object.keys(input).sort().join(',') === keys.sort().join(','))) {
+    throw new TypeError('Backup application settings are missing or contain unsupported fields.');
+  }
+  return validateSettings(input);
 }
 
 async function writeSettings(filePath, settings) {
@@ -115,4 +177,5 @@ module.exports = {
   defaultSettings,
   loadSettings,
   saveSettings,
+  validateBackupSettings,
 };

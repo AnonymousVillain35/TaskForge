@@ -1,17 +1,54 @@
 {
   "name": "taskforge",
-  "version": "1.0.0",
-  "description": "",
+  "version": "2.1.0",
+  "description": "A local-first desktop productivity application.",
   "main": "main.js",
   "scripts": {
     "start": "electron .",
-    "test": "node --test"
+    "test": "node --test",
+    "dist:win": "electron-builder --win"
   },
   "keywords": [],
-  "author": "Wasiqur Rahman",
+  "author": "AnonymousVillain35",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "electron": "^45.2.1"
+    "electron": "^45.2.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "com.taskforge.desktop",
+    "productName": "TaskForge",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "src/**/*",
+      "assets/**/*",
+      "!test/**/*",
+      "!**/*.test.js"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "assets/taskforge.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "deleteAppDataOnUninstall": false,
+      "artifactName": "${productName} Setup ${version}.${ext}",
+      "uninstallDisplayName": "${productName}"
+    }
   }
 }
